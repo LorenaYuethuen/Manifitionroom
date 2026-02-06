@@ -1,8 +1,9 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Text, RoundedBox, Sphere } from '@react-three/drei';
+import { RoundedBox, Text, OrbitControls, Html } from '@react-three/drei';
 import { useAppStore } from '../../store/useAppStore';
-import * as THREE from 'three';
+import { ManifestationModuleComponent } from '../ManifestationModule';
+import * as THREE from '../../lib/three';
 
 interface Module {
   id: string;
@@ -14,24 +15,29 @@ interface Module {
 export function ManifestationSpace() {
   const groupRef = useRef<THREE.Group>(null);
   const currentStage = useAppStore((state) => state.currentStage);
-  const visionCards = useAppStore((state) => state.visionCards);
+  const manifestationModules = useAppStore((state) => state.manifestationModules);
+  const [selectedModuleIndex, setSelectedModuleIndex] = useState<number | null>(null);
   
-  // Define manifestation modules based on life areas
-  const modules = useMemo<Module[]>(() => [
-    { id: 'career', title: '职业', color: '#3a5a7a', position: [4, 0, 0] },
-    { id: 'health', title: '健康', color: '#5a7a3a', position: [2.8, 0, 2.8] },
-    { id: 'relationships', title: '关系', color: '#7a3a5a', position: [0, 0, 4] },
-    { id: 'creativity', title: '创作', color: '#7a5a3a', position: [-2.8, 0, 2.8] },
-    { id: 'growth', title: '成长', color: '#3a7a5a', position: [-4, 0, 0] },
-    { id: 'spirituality', title: '精神', color: '#5a3a7a', position: [-2.8, 0, -2.8] },
-  ], []);
+  // Calculate positions for modules in a circle
+  const modulePositions = useMemo(() => {
+    const count = manifestationModules.length || 1;
+    return manifestationModules.map((_, index) => {
+      const angle = (index / count) * Math.PI * 2;
+      const radius = 5;
+      return [
+        Math.cos(angle) * radius,
+        0,
+        Math.sin(angle) * radius
+      ] as [number, number, number];
+    });
+  }, [manifestationModules]);
   
   useFrame((state) => {
     if (!groupRef.current || currentStage !== 'manifestation') return;
     
-    // Gentle rotation of the entire space
+    // Very gentle rotation of the entire space
     const time = state.clock.getElapsedTime();
-    groupRef.current.rotation.y = time * 0.05;
+    groupRef.current.rotation.y = time * 0.02;
   });
   
   if (currentStage !== 'manifestation') return null;
@@ -44,7 +50,7 @@ export function ManifestationSpace() {
       {/* Lighting */}
       <hemisphereLight args={['#ffffff', '#444466', 0.7]} />
       <spotLight
-        position={[0, 8, 0]}
+        position={[0, 10, 0]}
         angle={0.6}
         penumbra={1}
         intensity={0.8}
@@ -53,134 +59,75 @@ export function ManifestationSpace() {
       />
       
       {/* Central nexus */}
-      <Sphere args={[0.5, 32, 32]} position={[0, 0, 0]}>
-        <meshStandardMaterial
-          color="#FFEEDD"
-          emissive="#FFEEDD"
-          emissiveIntensity={0.5}
-          roughness={0.3}
-          metalness={0.7}
-        />
-      </Sphere>
+      <group position={[0, 0, 0]}>
+        <mesh>
+          <sphereGeometry args={[0.5, 32, 32]} />
+          <meshStandardMaterial
+            color="#FFEEDD"
+            emissive="#FFEEDD"
+            emissiveIntensity={0.5}
+            roughness={0.3}
+            metalness={0.7}
+          />
+        </mesh>
+        <pointLight color="#FFEEDD" intensity={1.5} distance={15} />
+      </group>
       
-      {/* Manifestation modules */}
-      {modules.map((module, index) => (
-        <group key={module.id} position={module.position}>
-          {/* Module sphere */}
-          <Sphere args={[0.8, 32, 32]}>
-            <meshStandardMaterial
-              color={module.color}
-              roughness={0.6}
-              metalness={0.4}
-              transparent
-              opacity={0.7}
-              emissive={module.color}
-              emissiveIntensity={0.3}
-            />
-          </Sphere>
-          
-          {/* Module label */}
+      {/* AI-generated manifestation modules */}
+      {manifestationModules.length > 0 ? (
+        manifestationModules.map((module, index) => (
+          <ManifestationModuleComponent
+            key={index}
+            module={module}
+            position={modulePositions[index]}
+            moduleIndex={index}
+          />
+        ))
+      ) : (
+        // Placeholder text when no modules exist
+        <group>
           <Text
-            position={[0, 1.2, 0]}
-            fontSize={0.3}
-            color="#CCCCCC"
+            position={[0, 2, 0]}
+            fontSize={0.4}
+            color="#FFEEDD"
             anchorX="center"
             anchorY="middle"
+            maxWidth={8}
           >
-            {module.title}
+            尚未生成显化模块
           </Text>
-          
-          {/* Connection line to center */}
-          <line>
-            <bufferGeometry>
-              <bufferAttribute
-                attach="attributes-position"
-                count={2}
-                array={new Float32Array([
-                  0, 0, 0,
-                  -module.position[0], -module.position[1], -module.position[2]
-                ])}
-                itemSize={3}
-              />
-            </bufferGeometry>
-            <lineBasicMaterial
-              color="#444466"
-              transparent
-              opacity={0.3}
-              linewidth={1}
-            />
-          </line>
-          
-          {/* Glow effect */}
-          <pointLight
-            position={[0, 0, 0]}
-            color={module.color}
-            intensity={0.5}
-            distance={3}
-          />
-        </group>
-      ))}
-      
-      {/* Vision cards distributed around modules */}
-      {visionCards.map((card, index) => {
-        const moduleIndex = index % modules.length;
-        const module = modules[moduleIndex];
-        const offset = (index / visionCards.length) * Math.PI * 2;
-        const radius = 1.5;
-        
-        const x = module.position[0] + Math.cos(offset) * radius;
-        const z = module.position[2] + Math.sin(offset) * radius;
-        
-        return (
-          <RoundedBox
-            key={card.id}
-            position={[x, 0.5, z]}
-            args={[0.6, 0.8, 0.05]}
-            radius={0.02}
-            smoothness={4}
+          <Text
+            position={[0, 1.3, 0]}
+            fontSize={0.25}
+            color="#FFEEDD"
+            anchorX="center"
+            anchorY="middle"
+            maxWidth={8}
+            opacity={0.6}
           >
-            <meshStandardMaterial
-              color="#1a1a1a"
-              roughness={0.7}
-              transparent
-              opacity={0.8}
-            />
-          </RoundedBox>
-        );
-      })}
+            请在"愿景环廊"阶段上传图片
+          </Text>
+        </group>
+      )}
       
       {/* Ground plane */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]} receiveShadow>
-        <planeGeometry args={[30, 30]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2, 0]} receiveShadow>
+        <planeGeometry args={[40, 40]} />
         <meshStandardMaterial
           color="#0a0a0a"
           roughness={0.9}
           transparent
-          opacity={0.6}
+          opacity={0.5}
         />
       </mesh>
       
-      {/* Instruction text */}
-      <Text
-        position={[0, 3, 0]}
-        fontSize={0.35}
-        color="#CCCCCC"
-        anchorX="center"
-        anchorY="middle"
-        maxWidth={8}
-      >
-        探索你的愿景模块
-      </Text>
-      <Text
-        position={[0, 2.4, 0]}
-        fontSize={0.2}
-        color="#888888"
-        anchorX="center"
-        anchorY="middle"
-        maxWidth={8}
-      >
-        点击模块查看关联的愿景卡片
-      </Text>
+      {/* Orbit controls */}
+      <OrbitControls
+        enableDamping
+        dampingFactor={0.05}
+        minDistance={5}
+        maxDistance={20}
+      />
     </group>
   );
 }

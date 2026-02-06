@@ -7,7 +7,10 @@ import { Timeline } from './components/ui/Timeline';
 import { KeyboardShortcuts } from './components/ui/KeyboardShortcuts';
 import { HelpModal } from './components/ui/HelpModal';
 import { PerformanceStats } from './components/ui/PerformanceStats';
+import { ModuleDetailPanel } from './components/ui/ModuleDetailPanel';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { useAppStore } from './store/useAppStore';
+import { Toaster } from 'sonner@2.0.3';
 import './styles/globals.css';
 
 function LoadingFallback() {
@@ -22,6 +25,16 @@ function LoadingFallback() {
 }
 
 export default function App() {
+  const currentStage = useAppStore((state) => state.currentStage);
+  const manifestationModules = useAppStore((state) => state.manifestationModules);
+  const selectedCardId = useAppStore((state) => state.selectedCardId);
+  const setSelectedCardId = useAppStore((state) => state.setSelectedCardId);
+  
+  // Find selected module (using selectedCardId as module index for now)
+  const selectedModule = selectedCardId !== null && manifestationModules[parseInt(selectedCardId)]
+    ? manifestationModules[parseInt(selectedCardId)]
+    : null;
+  
   return (
     <ErrorBoundary>
       <div className="w-full h-full relative">
@@ -37,6 +50,27 @@ export default function App() {
         <Timeline />
         <HelpModal />
         <PerformanceStats />
+        
+        {/* Module Detail Panel - shown when module is selected in manifestation stage */}
+        {currentStage === 'manifestation' && selectedModule && (
+          <ModuleDetailPanel
+            module={selectedModule}
+            onClose={() => setSelectedCardId(null)}
+          />
+        )}
+        
+        {/* Toast notifications */}
+        <Toaster 
+          position="bottom-right"
+          theme="dark"
+          toastOptions={{
+            style: {
+              background: '#050505',
+              color: '#FFEEDD',
+              border: '1px solid rgba(255, 238, 221, 0.2)'
+            }
+          }}
+        />
         
         {/* Keyboard shortcuts */}
         <KeyboardShortcuts />

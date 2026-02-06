@@ -1,8 +1,8 @@
-import { useRef, useState } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
-import { Text, RoundedBox } from '@react-three/drei';
+import { useRef, useMemo } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { OrbitControls, RoundedBox, Text, Sphere } from '@react-three/drei';
 import { useAppStore } from '../../store/useAppStore';
-import * as THREE from 'three';
+import * as THREE from '../../lib/three';
 import { VisionCard as VisionCardComponent } from '../VisionCard';
 
 export function VisionBoard() {

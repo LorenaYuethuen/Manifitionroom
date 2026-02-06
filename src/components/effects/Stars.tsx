@@ -1,6 +1,6 @@
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
+import * as THREE from '../../lib/three';
 
 export function Stars({ count = 1000 }: { count?: number }) {
   const pointsRef = useRef<THREE.Points>(null);

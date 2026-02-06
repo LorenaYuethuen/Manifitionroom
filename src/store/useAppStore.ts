@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { ManifestationModule } from '../lib/manifestationGenerator';
 
 export type Stage = 'void' | 'vision' | 'mobius' | 'manifestation';
 
@@ -10,6 +11,13 @@ export interface VisionCard {
   rotation: [number, number, number];
   scale: number;
   tags: string[];
+}
+
+export interface UploadedImage {
+  id: string;
+  url: string;
+  file: File;
+  analyzedAt?: number;
 }
 
 interface AppState {
@@ -29,6 +37,17 @@ interface AppState {
   addVisionCard: (card: Omit<VisionCard, 'id'>) => void;
   updateVisionCard: (id: string, updates: Partial<VisionCard>) => void;
   removeVisionCard: (id: string) => void;
+  
+  // Uploaded images and manifestation modules
+  uploadedImages: UploadedImage[];
+  addUploadedImage: (image: Omit<UploadedImage, 'id'>) => void;
+  removeUploadedImage: (id: string) => void;
+  
+  manifestationModules: ManifestationModule[];
+  setManifestationModules: (modules: ManifestationModule[]) => void;
+  
+  isAnalyzing: boolean;
+  setIsAnalyzing: (analyzing: boolean) => void;
   
   // Interaction state
   selectedCardId: string | null;
@@ -88,6 +107,26 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
     get().pushHistory();
   },
+  
+  uploadedImages: [],
+  addUploadedImage: (image) => {
+    const id = `image-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    set((state) => ({
+      uploadedImages: [...state.uploadedImages, { ...image, id }]
+    }));
+  },
+  
+  removeUploadedImage: (id) => {
+    set((state) => ({
+      uploadedImages: state.uploadedImages.filter((image) => image.id !== id)
+    }));
+  },
+  
+  manifestationModules: [],
+  setManifestationModules: (modules) => set({ manifestationModules: modules }),
+  
+  isAnalyzing: false,
+  setIsAnalyzing: (analyzing) => set({ isAnalyzing: analyzing }),
   
   selectedCardId: null,
   setSelectedCardId: (id) => set({ selectedCardId: id }),

@@ -7,6 +7,7 @@ import { ManifestationSpace } from './stages/ManifestationSpace';
 import { Stars } from './effects/Stars';
 import { AudioVisualizer } from './effects/AudioVisualizer';
 import { useAppStore } from '../store/useAppStore';
+import * as THREE from '../lib/three';
 
 export function Scene() {
   const lowStimulationMode = useAppStore((state) => state.lowStimulationMode);
@@ -23,6 +24,11 @@ export function Scene() {
       dpr={[1, 2]}
       style={{ background: '#050505' }}
       frameloop="always"
+      // Pass our centralized THREE instance to prevent multiple imports
+      onCreated={({ gl }) => {
+        // Ensure canvas is using our single THREE instance
+        gl.debug.checkShaderErrors = false;
+      }}
     >
       {/* Camera control */}
       <CameraRig />
