@@ -1,6 +1,9 @@
-import { ChevronLeft, ChevronRight, Upload, Image, Type, Music, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Upload, Image, Type, Music, Sparkles, Database } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { ImageUploader } from './ImageUploader';
+import { generateMockManifestationModules } from '../../data/mockVisionData';
+import { useState } from 'react';
+import { VisionGallery } from './VisionGallery';
 
 export function LeftPanel() {
   const showLeftPanel = useAppStore((state) => state.showLeftPanel);
@@ -11,6 +14,16 @@ export function LeftPanel() {
   const setStage = useAppStore((state) => state.setStage);
   const addVisionCard = useAppStore((state) => state.addVisionCard);
   const manifestationModules = useAppStore((state) => state.manifestationModules);
+  const setManifestationModules = useAppStore((state) => state.setManifestationModules);
+  
+  const [showGallery, setShowGallery] = useState(false);
+  
+  // 加载模拟数据
+  const handleLoadMockData = () => {
+    const mockModules = generateMockManifestationModules();
+    setManifestationModules(mockModules);
+    setStage('manifestation');
+  };
   
   const handleAddText = () => {
     const text = prompt('输入愿景文字：');
@@ -193,6 +206,34 @@ export function LeftPanel() {
               </p>
               <ImageUploader />
               
+              {/* 加载模拟数据按钮 */}
+              <button
+                onClick={handleLoadMockData}
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-gradient-to-r from-[#FFB703]/15 to-[#FFB703]/10 hover:from-[#FFB703]/25 hover:to-[#FFB703]/15 rounded-xl transition-all duration-300 group/mock border border-[#FFB703]/20 hover:border-[#FFB703]/40 hover:shadow-lg hover:shadow-[#FFB703]/20 relative overflow-hidden"
+              >
+                {/* 按钮光效 */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#FFB703]/20 to-transparent translate-x-[-100%] group-hover/mock:translate-x-[100%] transition-transform duration-700" />
+                
+                <Database size={18} className="relative text-[#FFB703] group-hover/mock:scale-110 transition-transform" />
+                <span className="relative text-sm font-medium text-[#FFB703]">
+                  加载模拟数据（10个愿景）
+                </span>
+              </button>
+              
+              {/* 查看愿景画廊按钮 */}
+              <button
+                onClick={() => setShowGallery(true)}
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-gradient-to-r from-[#F72585]/15 to-[#F72585]/10 hover:from-[#F72585]/25 hover:to-[#F72585]/15 rounded-xl transition-all duration-300 group/gallery border border-[#F72585]/20 hover:border-[#F72585]/40 hover:shadow-lg hover:shadow-[#F72585]/20 relative overflow-hidden"
+              >
+                {/* 按钮光效 */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#F72585]/20 to-transparent translate-x-[-100%] group-hover/gallery:translate-x-[100%] transition-transform duration-700" />
+                
+                <Image size={18} className="relative text-[#F72585] group-hover/gallery:scale-110 transition-transform" />
+                <span className="relative text-sm font-medium text-[#F72585]">
+                  查看愿景画廊
+                </span>
+              </button>
+              
               {manifestationModules.length > 0 && (
                 <div 
                   className="mt-4 p-4 rounded-xl bg-gradient-to-br from-[#FFEEDD]/10 to-[#FFEEDD]/5 border border-[#FFEEDD]/30 backdrop-blur-sm relative overflow-hidden group/modules"
@@ -278,6 +319,19 @@ export function LeftPanel() {
           </div>
         </div>
       </div>
+      
+      {/* Vision Gallery Modal */}
+      {showGallery && (
+        <div className="fixed inset-0 z-[60]">
+          <VisionGallery onSensoryActivate={() => {}} />
+          <button
+            onClick={() => setShowGallery(false)}
+            className="fixed top-4 right-4 z-[70] p-3 bg-[#050505]/80 backdrop-blur-md text-[#FFEEDD] rounded-lg hover:bg-[#050505]/95 transition-all duration-300"
+          >
+            关闭画廊
+          </button>
+        </div>
+      )}
     </>
   );
 }
