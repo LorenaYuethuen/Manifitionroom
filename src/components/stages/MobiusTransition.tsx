@@ -1,21 +1,21 @@
 import { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import * as THREE from '../../lib/three';
 import { useAppStore } from '../../store/useAppStore';
+import { Points, PointMaterial } from '@react-three/drei';
+import { BufferGeometry, BufferAttribute } from 'three';
+import * as THREE from 'three';
 
 export function MobiusTransition() {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const meshRef = useRef<any>(null);
   const cameraPathRef = useRef(0);
   const currentStage = useAppStore((state) => state.currentStage);
   const setStage = useAppStore((state) => state.setStage);
-  const lowStimulationMode = useAppStore((state) => state.lowStimulationMode);
   
   // Create mobius strip geometry
-  const mobiusGeometry = useMemo(() => {
-    const geometry = new THREE.BufferGeometry();
-    const vertices: number[] = [];
-    const indices: number[] = [];
-    const uvs: number[] = [];
+  const { geometry, particlePositions } = useMemo(() => {
+    const verts: number[] = [];
+    const inds: number[] = [];
+    const uvCoords: number[] = [];
     
     const segments = 80;
     const width = 2;
@@ -31,8 +31,8 @@ export function MobiusTransition() {
         const y = (1 + v * Math.cos(u / 2)) * Math.sin(u);
         const z = v * Math.sin(u / 2);
         
-        vertices.push(x * 3, y * 3, z * 3);
-        uvs.push(i / segments, j);
+        verts.push(x * 3, y * 3, z * 3);
+        uvCoords.push(i / segments, j);
       }
     }
     
@@ -42,16 +42,33 @@ export function MobiusTransition() {
       const c = a + 2;
       const d = a + 3;
       
-      indices.push(a, b, c);
-      indices.push(b, d, c);
+      inds.push(a, b, c);
+      inds.push(b, d, c);
     }
     
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-    geometry.setIndex(indices);
-    geometry.computeVertexNormals();
+    // Create geometry
+    const geom = new BufferGeometry();
+    geom.setAttribute('position', new BufferAttribute(new Float32Array(verts), 3));
+    geom.setAttribute('uv', new BufferAttribute(new Float32Array(uvCoords), 2));
+    geom.setIndex(inds);
+    geom.computeVertexNormals();
     
-    return geometry;
+    // Particle trail positions
+    const particlePos = new Float32Array(
+      Array.from({ length: 50 }, (_, i) => {
+        const angle = (i / 50) * Math.PI * 2;
+        return [
+          Math.cos(angle) * 3,
+          Math.sin(angle) * 3,
+          Math.sin(angle / 2) * 1.5
+        ];
+      }).flat()
+    );
+    
+    return { 
+      geometry: geom,
+      particlePositions: particlePos
+    };
   }, []);
   
   useFrame((state, delta) => {
@@ -62,7 +79,7 @@ export function MobiusTransition() {
     meshRef.current.rotation.x = Math.sin(state.clock.getElapsedTime() * 0.5) * 0.2;
     
     // Camera path progression
-    const speed = lowStimulationMode ? 0.15 : 0.25;
+    const speed = 0.25;
     cameraPathRef.current += delta * speed;
     
     // Move camera along the path
@@ -88,15 +105,17 @@ export function MobiusTransition() {
     }
   }, [currentStage]);
   
-  if (currentStage !== 'mobius') return null;
+  const isActive = currentStage === 'mobius';
+  
+  if (!isActive) return null;
   
   return (
     <group>
-      {/* Dark fog for tunnel effect */}
-      <fog attach="fog" args={['#050505', 3, 18]} />
+      {/* Additional lighting for mobius effect */}
+      <pointLight position={[0, 0, 0]} intensity={0.8} distance={10} decay={2} />
       
-      {/* Mobius strip */}
-      <mesh ref={meshRef} geometry={mobiusGeometry}>
+      {/* Mobius strip mesh */}
+      <mesh ref={meshRef} geometry={geometry}>
         <meshStandardMaterial
           color="#1a1a2e"
           roughness={0.6}
@@ -110,37 +129,15 @@ export function MobiusTransition() {
       </mesh>
       
       {/* Particle trail following the strip */}
-      <points>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            count={50}
-            array={new Float32Array(
-              Array.from({ length: 50 }, (_, i) => {
-                const angle = (i / 50) * Math.PI * 2;
-                return [
-                  Math.cos(angle) * 3,
-                  Math.sin(angle) * 3,
-                  Math.sin(angle / 2) * 1.5
-                ];
-              }).flat()
-            )}
-            itemSize={3}
-          />
-        </bufferGeometry>
-        <pointsMaterial
+      <Points positions={particlePositions} stride={3}>
+        <PointMaterial
           size={0.1}
           color="#FFEEDD"
           transparent
           opacity={0.6}
           sizeAttenuation
-          blending={THREE.AdditiveBlending}
         />
-      </points>
-      
-      {/* Ambient lighting */}
-      <ambientLight intensity={0.3} color="#444466" />
-      <pointLight position={[0, 0, 0]} intensity={1} color="#FFEEDD" distance={10} />
+      </Points>
     </group>
   );
 }

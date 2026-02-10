@@ -400,6 +400,7 @@ export const mockVisionImages: VisionImage[] = [
 export function generateMockManifestationModules(): ManifestationModule[] {
   return [
     {
+      id: '身心健康',
       dimension: {
         name: '身心健康',
         icon: '🌿',
@@ -441,6 +442,7 @@ export function generateMockManifestationModules(): ManifestationModule[] {
       }
     },
     {
+      id: '人际关系',
       dimension: {
         name: '人际关系',
         icon: '💝',
@@ -482,6 +484,7 @@ export function generateMockManifestationModules(): ManifestationModule[] {
       }
     },
     {
+      id: '事业成就',
       dimension: {
         name: '事业成就',
         icon: '🎯',
@@ -523,6 +526,7 @@ export function generateMockManifestationModules(): ManifestationModule[] {
       }
     },
     {
+      id: '精神成长',
       dimension: {
         name: '精神成长',
         icon: '🧘',
@@ -564,6 +568,7 @@ export function generateMockManifestationModules(): ManifestationModule[] {
       }
     },
     {
+      id: '创造表达',
       dimension: {
         name: '创造表达',
         icon: '🎨',

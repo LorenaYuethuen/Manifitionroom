@@ -37,7 +37,7 @@ export default function App() {
   
   return (
     <ErrorBoundary>
-      <div className="w-full h-full relative">
+      <div className="w-full h-screen relative overflow-hidden">
         {/* 3D Scene */}
         <Suspense fallback={<LoadingFallback />}>
           <Scene />

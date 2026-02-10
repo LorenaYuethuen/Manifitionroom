@@ -1,10 +1,9 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useAppStore } from '../store/useAppStore';
-import * as THREE from '../lib/three';
 
 // Custom damping functions to replace maath
 function damp3(
-  current: THREE.Vector3,
+  current: { x: number; y: number; z: number },
   target: [number, number, number],
   smoothing: number,
   delta: number
@@ -16,7 +15,7 @@ function damp3(
 }
 
 function dampE(
-  current: THREE.Euler,
+  current: { x: number; y: number; z: number },
   target: [number, number, number],
   smoothing: number,
   delta: number

@@ -6,10 +6,10 @@
 
 import { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Text, Sphere } from '@react-three/drei';
+import { Text, Sphere, Line, Torus } from '@react-three/drei';
 import { useAppStore } from '../store/useAppStore';
-import * as THREE from '../lib/three';
 import type { ManifestationModule } from '../lib/manifestationGenerator';
+import * as THREE from 'three';
 
 interface Props {
   module: ManifestationModule;
@@ -18,16 +18,19 @@ interface Props {
 }
 
 export function ManifestationModuleComponent({ module, position, moduleIndex }: Props) {
-  const groupRef = useRef<THREE.Group>(null);
-  const sphereRef = useRef<THREE.Mesh>(null);
-  const sensoryGroupRef = useRef<THREE.Group>(null);
+  const groupRef = useRef<any>(null);
+  const sphereRef = useRef<any>(null);
+  const sensoryGroupRef = useRef<any>(null);
   const [hovered, setHovered] = useState(false);
+  const [mainLightIntensity, setMainLightIntensity] = useState(0.5);
   
   const selectedCardId = useAppStore((state) => state.selectedCardId);
   const setSelectedCardId = useAppStore((state) => state.setSelectedCardId);
   
   const isSelected = selectedCardId === moduleIndex.toString();
-
+  
+  const color = module.dimension.color;
+  
   // 五感锚点的位置配置（螺旋展开）
   const sensoryPositions = [
     { pos: [0, 1.5, 0], angle: 0 },      // visual - 顶部
@@ -61,19 +64,20 @@ export function ManifestationModuleComponent({ module, position, moduleIndex }: 
     
     // 流畅的缩放过渡
     const targetScale = isSelected ? 1.2 : (hovered ? 1.1 : 1);
-    sphereRef.current.scale.lerp(
-      new THREE.Vector3(targetScale, targetScale, targetScale), 
-      0.08
-    );
+    const currentScale = sphereRef.current.scale.x;
+    const newScale = currentScale + (targetScale - currentScale) * 0.08;
+    sphereRef.current.scale.setScalar(newScale);
+    
+    // Update main light intensity
+    setMainLightIntensity(isSelected ? 1.5 : (hovered ? 1 : 0.5));
 
     // 五感锚点渐进式展开动画
     if (sensoryGroupRef.current) {
       const targetOpacity = isSelected ? 1 : 0;
-      sensoryGroupRef.current.traverse((child) => {
-        if (child instanceof THREE.Mesh && child.material) {
-          const material = child.material as THREE.MeshStandardMaterial;
-          if (material.opacity !== undefined) {
-            material.opacity = THREE.MathUtils.lerp(material.opacity, targetOpacity, 0.1);
+      sensoryGroupRef.current.traverse((child: any) => {
+        if (child.isMesh && child.material) {
+          if (child.material.opacity !== undefined) {
+            child.material.opacity += (targetOpacity - child.material.opacity) * 0.1;
           }
         }
       });
@@ -85,7 +89,6 @@ export function ManifestationModuleComponent({ module, position, moduleIndex }: 
     }
   });
 
-  const color = module.dimension.color;
   const sensoryColors = ['#FF6B9D', '#6BCF7F', '#FFD93D', '#C9A0DC', '#6EC6FF'];
 
   return (
@@ -117,7 +120,6 @@ export function ManifestationModuleComponent({ module, position, moduleIndex }: 
               color={color}
               transparent
               opacity={0.15}
-              side={THREE.BackSide}
             />
           </Sphere>
           <Sphere args={[1.25, 32, 32]}>
@@ -125,7 +127,6 @@ export function ManifestationModuleComponent({ module, position, moduleIndex }: 
               color={color}
               transparent
               opacity={0.08}
-              side={THREE.BackSide}
             />
           </Sphere>
         </>
@@ -152,7 +153,6 @@ export function ManifestationModuleComponent({ module, position, moduleIndex }: 
         anchorY="middle"
         outlineWidth={0.01}
         outlineColor="#050505"
-        fontWeight={300}
       >
         {module.dimension.name}
       </Text>
@@ -176,13 +176,7 @@ export function ManifestationModuleComponent({ module, position, moduleIndex }: 
       )}
 
       {/* 主光源 */}
-      <pointLight
-        position={[0, 0, 0]}
-        color={color}
-        intensity={isSelected ? 1.5 : (hovered ? 1 : 0.5)}
-        distance={6}
-        decay={2}
-      />
+      <pointLight position={[0, 0, 0]} intensity={mainLightIntensity} distance={6} color={color} decay={2} />
 
       {/* 五感锚点系统 - 渐进式展开 */}
       <group ref={sensoryGroupRef}>
@@ -209,79 +203,45 @@ export function ManifestationModuleComponent({ module, position, moduleIndex }: 
               </Sphere>
 
               {/* 连接线 - 从主球体到锚点 */}
-              <line>
-                <bufferGeometry>
-                  <bufferAttribute
-                    attach="attributes-position"
-                    count={2}
-                    array={new Float32Array([
-                      0, 0, 0,
-                      x, y, z
-                    ])}
-                    itemSize={3}
-                  />
-                </bufferGeometry>
-                <lineBasicMaterial
-                  color={sensoryColor}
-                  transparent
-                  opacity={0}
-                  linewidth={2}
-                />
-              </line>
+              <Line
+                points={[
+                  [0, 0, 0],
+                  [x, y, z]
+                ]}
+                color={sensoryColor}
+                transparent
+                opacity={0}
+                linewidth={2}
+              />
 
               {/* 锚点光晕 */}
-              <pointLight
-                position={[x, y, z]}
-                color={sensoryColor}
-                intensity={0.8}
-                distance={2}
-                decay={2}
-              />
+              <pointLight position={[x, y, z]} intensity={0.8} distance={2} color={sensoryColor} decay={2} />
             </group>
           );
         })}
       </group>
 
       {/* 中心连接线（连到显化空间中心） */}
-      <line>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            count={2}
-            array={new Float32Array([
-              0, 0, 0,
-              -position[0] * 0.3, -position[1] * 0.3, -position[2] * 0.3
-            ])}
-            itemSize={3}
-          />
-        </bufferGeometry>
-        <lineBasicMaterial
-          color="#FFEEDD"
-          transparent
-          opacity={isSelected ? 0.5 : 0.2}
-          linewidth={isSelected ? 2 : 1}
-        />
-      </line>
+      <Line
+        points={[
+          [0, 0, 0],
+          [-position[0] * 0.3, -position[1] * 0.3, -position[2] * 0.3]
+        ]}
+        color="#FFEEDD"
+        transparent
+        opacity={isSelected ? 0.5 : 0.2}
+        linewidth={isSelected ? 2 : 1}
+      />
 
       {/* 选中时的外环 */}
       {isSelected && (
         <>
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[1.4, 0.02, 16, 64]} />
-            <meshBasicMaterial 
-              color={color} 
-              transparent 
-              opacity={0.4}
-            />
-          </mesh>
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[1.6, 0.015, 16, 64]} />
-            <meshBasicMaterial 
-              color={color} 
-              transparent 
-              opacity={0.2}
-            />
-          </mesh>
+          <Torus args={[1.4, 0.02, 16, 64]} rotation={[Math.PI / 2, 0, 0]}>
+            <meshBasicMaterial color={color} transparent opacity={0.4} />
+          </Torus>
+          <Torus args={[1.6, 0.015, 16, 64]} rotation={[Math.PI / 2, 0, 0]}>
+            <meshBasicMaterial color={color} transparent opacity={0.2} />
+          </Torus>
         </>
       )}
     </group>

@@ -1,9 +1,13 @@
-import { ChevronLeft, ChevronRight, Upload, Image, Type, Music, Sparkles, Database } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Upload, Image, Type, Music, Sparkles, Database, ListChecks, Calendar } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { ImageUploader } from './ImageUploader';
 import { generateMockManifestationModules } from '../../data/mockVisionData';
 import { useState } from 'react';
 import { VisionGallery } from './VisionGallery';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './dialog';
+import { SOPManifestationPanel } from './SOPManifestationPanel';
+import { ManifestationTimeline } from './ManifestationTimeline';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
 
 export function LeftPanel() {
   const showLeftPanel = useAppStore((state) => state.showLeftPanel);
@@ -17,6 +21,8 @@ export function LeftPanel() {
   const setManifestationModules = useAppStore((state) => state.setManifestationModules);
   
   const [showGallery, setShowGallery] = useState(false);
+  const [showSOPDialog, setShowSOPDialog] = useState(false);
+  const [currentDay, setCurrentDay] = useState(1);
   
   // 加载模拟数据
   const handleLoadMockData = () => {
@@ -234,6 +240,20 @@ export function LeftPanel() {
                 </span>
               </button>
               
+              {/* 查看SOP显化系统按钮 */}
+              <button
+                onClick={() => setShowSOPDialog(true)}
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-gradient-to-r from-[#A8DADC]/15 to-[#A8DADC]/10 hover:from-[#A8DADC]/25 hover:to-[#A8DADC]/15 rounded-xl transition-all duration-300 group/sop border border-[#A8DADC]/20 hover:border-[#A8DADC]/40 hover:shadow-lg hover:shadow-[#A8DADC]/20 relative overflow-hidden"
+              >
+                {/* 按钮光效 */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#A8DADC]/20 to-transparent translate-x-[-100%] group-hover/sop:translate-x-[100%] transition-transform duration-700" />
+                
+                <ListChecks size={18} className="relative text-[#A8DADC] group-hover/sop:scale-110 transition-transform" />
+                <span className="relative text-sm font-medium text-[#A8DADC]">
+                  SOP显化系统
+                </span>
+              </button>
+              
               {manifestationModules.length > 0 && (
                 <div 
                   className="mt-4 p-4 rounded-xl bg-gradient-to-br from-[#FFEEDD]/10 to-[#FFEEDD]/5 border border-[#FFEEDD]/30 backdrop-blur-sm relative overflow-hidden group/modules"
@@ -332,6 +352,34 @@ export function LeftPanel() {
           </button>
         </div>
       )}
+      
+      {/* SOP Manifestation Panel Dialog */}
+      {showSOPDialog && (
+        <div className="fixed inset-0 z-[60] bg-[#050505]/95 backdrop-blur-xl">
+          <div className="h-full overflow-y-auto p-8">
+            <div className="max-w-4xl mx-auto">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-light text-[#FFEEDD] tracking-wide">SOP显化系统</h2>
+                  <p className="text-sm text-[#FFEEDD]/60 mt-1">从愿景到现实的执行框架</p>
+                </div>
+                <button
+                  onClick={() => setShowSOPDialog(false)}
+                  className="p-3 bg-[#FFEEDD]/10 hover:bg-[#FFEEDD]/20 text-[#FFEEDD] rounded-lg transition-all duration-300"
+                >
+                  关闭
+                </button>
+              </div>
+              
+              {/* Content */}
+              <SOPManifestationPanel currentDay={currentDay} />
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Manifestation Timeline - removed tabs, kept simple */}
     </>
   );
 }

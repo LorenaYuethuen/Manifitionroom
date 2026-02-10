@@ -1,24 +1,24 @@
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import * as THREE from '../../lib/three';
+import { Points, PointMaterial } from '@react-three/drei';
 
 export function Stars({ count = 1000 }: { count?: number }) {
-  const pointsRef = useRef<THREE.Points>(null);
+  const pointsRef = useRef<any>(null);
   
   const positions = useMemo(() => {
-    const positions = new Float32Array(count * 3);
+    const pos = new Float32Array(count * 3);
     
     for (let i = 0; i < count; i++) {
       const radius = 50 + Math.random() * 50;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos((Math.random() * 2) - 1);
       
-      positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
-      positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-      positions[i * 3 + 2] = radius * Math.cos(phi);
+      pos[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+      pos[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+      pos[i * 3 + 2] = radius * Math.cos(phi);
     }
     
-    return positions;
+    return pos;
   }, [count]);
   
   useFrame((state) => {
@@ -27,16 +27,8 @@ export function Stars({ count = 1000 }: { count?: number }) {
   });
   
   return (
-    <points ref={pointsRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={count}
-          array={positions}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <pointsMaterial
+    <Points ref={pointsRef} positions={positions} stride={3}>
+      <PointMaterial
         size={0.05}
         color="#ffffff"
         transparent
@@ -44,6 +36,6 @@ export function Stars({ count = 1000 }: { count?: number }) {
         sizeAttenuation
         depthWrite={false}
       />
-    </points>
+    </Points>
   );
 }

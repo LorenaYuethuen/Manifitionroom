@@ -6,6 +6,7 @@
 import type { ColorAnalysis, ManifestationDimension } from './imageAnalyzer';
 
 export interface ManifestationModule {
+  id: string;
   dimension: ManifestationDimension;
   vision: string; // 愿景描述
   goals: Array<{
@@ -40,6 +41,7 @@ export function generateManifestationModules(
     const customized = customizeWithColorEnergy(template, colorAnalysis);
     
     return {
+      id: dimension.name,
       dimension,
       ...customized
     };
@@ -50,7 +52,7 @@ export function generateManifestationModules(
  * 获取维度的基础模板
  */
 function getTemplateForDimension(dimensionName: string) {
-  const templates: Record<string, Omit<ManifestationModule, 'dimension'>> = {
+  const templates: Record<string, Omit<ManifestationModule, 'dimension' | 'id'>> = {
     '事业成就': {
       vision: '在专业领域建立影响力，实现职业突破',
       goals: [
@@ -186,9 +188,9 @@ function getTemplateForDimension(dimensionName: string) {
  * 基于色彩能量定制模板
  */
 function customizeWithColorEnergy(
-  template: Omit<ManifestationModule, 'dimension'>,
+  template: Omit<ManifestationModule, 'dimension' | 'id'>,
   colorAnalysis: ColorAnalysis
-): Omit<ManifestationModule, 'dimension'> {
+): Omit<ManifestationModule, 'dimension' | 'id'> {
   const { emotionalTone } = colorAnalysis;
   const { energy, warmth } = emotionalTone;
   

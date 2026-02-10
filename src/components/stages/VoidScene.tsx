@@ -1,125 +1,83 @@
-import { useRef, useMemo, useEffect } from 'react';
+import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import * as THREE from '../../lib/three';
+import { Points, PointMaterial } from '@react-three/drei';
 import { useAppStore } from '../../store/useAppStore';
+import * as THREE from 'three';
 
 export function VoidScene() {
   const pointsRef = useRef<THREE.Points>(null);
   const currentStage = useAppStore((state) => state.currentStage);
   const lowStimulationMode = useAppStore((state) => state.lowStimulationMode);
-  const setStage = useAppStore((state) => state.setStage);
   
-  const particleCount = lowStimulationMode ? 150 : 300;
+  const isActive = currentStage === 'void';
+  const particleCount = lowStimulationMode ? 1000 : 3000;
   
-  const { positions, velocities } = useMemo(() => {
-    const positions = new Float32Array(particleCount * 3);
-    const velocities = new Float32Array(particleCount * 3);
+  // Generate particle positions
+  const positions = useMemo(() => {
+    const pos = new Float32Array(particleCount * 3);
     
     for (let i = 0; i < particleCount; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 20;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 12;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 35;
+      // Sphere distribution for awakening effect
+      const radius = 5 + Math.random() * 15;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos((Math.random() * 2) - 1);
       
-      velocities[i * 3] = (Math.random() - 0.5) * 0.02;
-      velocities[i * 3 + 1] = (Math.random() - 0.5) * 0.02;
-      velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.02;
+      pos[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+      pos[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+      pos[i * 3 + 2] = radius * Math.cos(phi);
     }
-    return { positions, velocities };
+    
+    return pos;
   }, [particleCount]);
   
   useFrame((state) => {
-    if (!pointsRef.current || currentStage !== 'void') return;
+    if (!pointsRef.current || !isActive) return;
     
     const time = state.clock.getElapsedTime();
-    const geometry = pointsRef.current.geometry;
-    const positions = geometry.attributes.position.array as Float32Array;
+    const positions = pointsRef.current.geometry.attributes.position.array;
     
-    // Gentle rotation
-    pointsRef.current.rotation.z = time * 0.02;
-    pointsRef.current.rotation.y = Math.sin(time * 0.15) * 0.05;
-    
-    // Particle drift
+    // Gentle inward spiral animation
     for (let i = 0; i < particleCount; i++) {
-      positions[i * 3] += velocities[i * 3];
-      positions[i * 3 + 1] += velocities[i * 3 + 1];
-      positions[i * 3 + 2] += velocities[i * 3 + 2];
+      const i3 = i * 3;
+      const x = positions[i3];
+      const y = positions[i3 + 1];
+      const z = positions[i3 + 2];
       
-      // Boundary wrapping
-      if (Math.abs(positions[i * 3]) > 12) velocities[i * 3] *= -1;
-      if (Math.abs(positions[i * 3 + 1]) > 8) velocities[i * 3 + 1] *= -1;
-      if (Math.abs(positions[i * 3 + 2]) > 20) velocities[i * 3 + 2] *= -1;
+      const distance = Math.sqrt(x * x + y * y + z * z);
+      const speed = 1 - (distance / 20);
+      
+      // Spiral inward
+      positions[i3] *= 1 - (speed * 0.008);
+      positions[i3 + 1] *= 1 - (speed * 0.008);
+      positions[i3 + 2] *= 1 - (speed * 0.008);
+      
+      // Add rotation
+      const angle = speed * time * 0.5;
+      const newX = positions[i3] * Math.cos(angle) - positions[i3 + 2] * Math.sin(angle);
+      const newZ = positions[i3] * Math.sin(angle) + positions[i3 + 2] * Math.cos(angle);
+      
+      positions[i3] = newX;
+      positions[i3 + 2] = newZ;
     }
     
-    geometry.attributes.position.needsUpdate = true;
-    
-    // Mouse interaction - particles avoid pointer
-    const pointer = state.pointer;
-    for (let i = 0; i < particleCount; i++) {
-      const dx = positions[i * 3] - pointer.x * 10;
-      const dy = positions[i * 3 + 1] - pointer.y * 8;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      if (distance < 3) {
-        const force = (3 - distance) * 0.01;
-        positions[i * 3] += (dx / distance) * force;
-        positions[i * 3 + 1] += (dy / distance) * force;
-      }
-    }
+    pointsRef.current.geometry.attributes.position.needsUpdate = true;
   });
   
-  useEffect(() => {
-    // Auto-transition after 8 seconds
-    const timer = setTimeout(() => {
-      if (currentStage === 'void') {
-        setStage('vision');
-      }
-    }, 8000);
-    
-    return () => clearTimeout(timer);
-  }, [currentStage, setStage]);
-  
-  if (currentStage !== 'void') return null;
+  if (!isActive) return null;
   
   return (
     <group>
-      {/* Fog effect */}
-      <fog attach="fog" args={['#050505', 5, 25]} />
-      
-      {/* Particle system */}
-      <points ref={pointsRef}>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            count={particleCount}
-            array={positions}
-            itemSize={3}
-          />
-        </bufferGeometry>
-        <pointsMaterial
-          size={0.12}
+      {/* Particle system using drei Points */}
+      <Points ref={pointsRef} positions={positions} stride={3}>
+        <PointMaterial
+          size={0.05}
           color="#FFEEDD"
           transparent
           opacity={0.6}
           sizeAttenuation
           depthWrite={false}
-          blending={THREE.AdditiveBlending}
         />
-      </points>
-      
-      {/* Ambient hemisphere light */}
-      <hemisphereLight args={['#ffffff', '#444444', 0.3]} />
-      
-      {/* Central hint sphere - fades in after 3 seconds */}
-      <mesh position={[0, 0, 0]}>
-        <sphereGeometry args={[0.5, 16, 16]} />
-        <meshStandardMaterial
-          color="#FFEEDD"
-          emissive="#FFEEDD"
-          emissiveIntensity={0.4}
-          transparent
-          opacity={0.3}
-        />
-      </mesh>
+      </Points>
     </group>
   );
 }

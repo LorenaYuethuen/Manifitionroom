@@ -5,6 +5,7 @@
 
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { Points, PointMaterial } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface SensoryParticlesProps {
@@ -20,14 +21,14 @@ export function SensoryParticles({
   active,
   position = [0, 0, 0]
 }: SensoryParticlesProps) {
-  const particlesRef = useRef<THREE.Points>(null);
+  const particlesRef = useRef<any>(null);
   const timeRef = useRef(0);
 
   // 根据感官类型定义粒子特征
   const config = useMemo(() => {
     const configs = {
       visual: {
-        color: new THREE.Color('#FFEEDD'), // 暖白光
+        color: '#FFEEDD', // 暖白光
         count: 50,
         size: 0.08,
         spread: 1.5,
@@ -36,7 +37,7 @@ export function SensoryParticles({
         opacity: 0.8
       },
       auditory: {
-        color: new THREE.Color('#A8DADC'), // 宁静蓝
+        color: '#A8DADC', // 宁静蓝
         count: 30,
         size: 0.06,
         spread: 2.0,
@@ -45,7 +46,7 @@ export function SensoryParticles({
         opacity: 0.6
       },
       kinesthetic: {
-        color: new THREE.Color('#F72585'), // 创造紫红
+        color: '#F72585', // 创造紫红
         count: 40,
         size: 0.1,
         spread: 1.2,
@@ -54,7 +55,7 @@ export function SensoryParticles({
         opacity: 0.7
       },
       olfactory: {
-        color: new THREE.Color('#7FB069'), // 生命绿
+        color: '#7FB069', // 生命绿
         count: 35,
         size: 0.07,
         spread: 1.8,
@@ -63,7 +64,7 @@ export function SensoryParticles({
         opacity: 0.5
       },
       emotional: {
-        color: new THREE.Color('#FFB703'), // 金色
+        color: '#FFB703', // 金色
         count: 60,
         size: 0.12,
         spread: 2.5,
@@ -76,9 +77,8 @@ export function SensoryParticles({
   }, [sensoryType]);
 
   // 生成粒子位置
-  const { positions, velocities } = useMemo(() => {
-    const positions = new Float32Array(config.count * 3);
-    const velocities = new Float32Array(config.count * 3);
+  const positions = useMemo(() => {
+    const pos = new Float32Array(config.count * 3);
     
     for (let i = 0; i < config.count; i++) {
       const i3 = i * 3;
@@ -87,39 +87,34 @@ export function SensoryParticles({
       if (config.pattern === 'spiral') {
         const angle = (i / config.count) * Math.PI * 4;
         const radius = (i / config.count) * config.spread;
-        positions[i3] = Math.cos(angle) * radius;
-        positions[i3 + 1] = (i / config.count) * 2 - 1;
-        positions[i3 + 2] = Math.sin(angle) * radius;
+        pos[i3] = Math.cos(angle) * radius;
+        pos[i3 + 1] = (i / config.count) * 2 - 1;
+        pos[i3 + 2] = Math.sin(angle) * radius;
       } else if (config.pattern === 'wave') {
-        positions[i3] = (Math.random() - 0.5) * config.spread;
-        positions[i3 + 1] = Math.sin((i / config.count) * Math.PI * 2);
-        positions[i3 + 2] = (Math.random() - 0.5) * config.spread;
+        pos[i3] = (Math.random() - 0.5) * config.spread;
+        pos[i3 + 1] = Math.sin((i / config.count) * Math.PI * 2);
+        pos[i3 + 2] = (Math.random() - 0.5) * config.spread;
       } else if (config.pattern === 'flow') {
-        positions[i3] = (Math.random() - 0.5) * config.spread;
-        positions[i3 + 1] = (Math.random() - 0.5) * config.spread;
-        positions[i3 + 2] = (Math.random() - 0.5) * config.spread;
+        pos[i3] = (Math.random() - 0.5) * config.spread;
+        pos[i3 + 1] = (Math.random() - 0.5) * config.spread;
+        pos[i3 + 2] = (Math.random() - 0.5) * config.spread;
       } else if (config.pattern === 'drift') {
         const angle = Math.random() * Math.PI * 2;
         const radius = Math.random() * config.spread;
-        positions[i3] = Math.cos(angle) * radius;
-        positions[i3 + 1] = Math.random() * 2 - 1;
-        positions[i3 + 2] = Math.sin(angle) * radius;
+        pos[i3] = Math.cos(angle) * radius;
+        pos[i3 + 1] = Math.random() * 2 - 1;
+        pos[i3 + 2] = Math.sin(angle) * radius;
       } else if (config.pattern === 'radial') {
         const theta = Math.random() * Math.PI * 2;
         const phi = Math.acos(2 * Math.random() - 1);
         const radius = Math.random() * config.spread;
-        positions[i3] = radius * Math.sin(phi) * Math.cos(theta);
-        positions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-        positions[i3 + 2] = radius * Math.cos(phi);
+        pos[i3] = radius * Math.sin(phi) * Math.cos(theta);
+        pos[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+        pos[i3 + 2] = radius * Math.cos(phi);
       }
-      
-      // 初始速度
-      velocities[i3] = (Math.random() - 0.5) * 0.02;
-      velocities[i3 + 1] = (Math.random() - 0.5) * 0.02;
-      velocities[i3 + 2] = (Math.random() - 0.5) * 0.02;
     }
     
-    return { positions, velocities };
+    return pos;
   }, [config]);
 
   // 动画循环
@@ -127,7 +122,11 @@ export function SensoryParticles({
     if (!particlesRef.current || !active) return;
     
     const geometry = particlesRef.current.geometry;
+    if (!geometry || !geometry.attributes || !geometry.attributes.position) return;
+    
     const positions = geometry.attributes.position.array as Float32Array;
+    
+    if (!positions) return;
     
     timeRef.current += delta * config.speed;
     
@@ -178,31 +177,27 @@ export function SensoryParticles({
     geometry.attributes.position.needsUpdate = true;
     
     // 材质透明度随强度和激活状态变化
-    const material = particlesRef.current.material as THREE.PointsMaterial;
-    const targetOpacity = active ? config.opacity * intensityFactor : 0;
-    material.opacity += (targetOpacity - material.opacity) * 0.05;
+    const material = particlesRef.current.material;
+    if (material && material.opacity !== undefined) {
+      const targetOpacity = active ? config.opacity * intensityFactor : 0;
+      material.opacity += (targetOpacity - material.opacity) * 0.05;
+    }
   });
 
   return (
-    <points ref={particlesRef} position={position}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={config.count}
-          array={positions}
-          itemSize={3}
+    <group position={position}>
+      <Points ref={particlesRef} positions={positions} stride={3}>
+        <PointMaterial
+          size={config.size}
+          color={config.color}
+          transparent
+          opacity={0}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+          sizeAttenuation
         />
-      </bufferGeometry>
-      <pointsMaterial
-        size={config.size}
-        color={config.color}
-        transparent
-        opacity={0}
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-        sizeAttenuation
-      />
-    </points>
+      </Points>
+    </group>
   );
 }
 
